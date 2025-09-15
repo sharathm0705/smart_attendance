@@ -15,9 +15,9 @@ from sqlalchemy import func
 from database import SessionLocal, Student, Attendance, Headcount
 from auth import authenticate_user, create_access_token, get_current_user
 
-# ------------------------
+
 # BASE DIR & app setup
-# ------------------------
+
 BASE_DIR = Path(__file__).resolve().parent
 app = FastAPI()
 
@@ -36,9 +36,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ------------------------
+
 # Database dependency
-# ------------------------
 def get_db():
     db = SessionLocal()
     try:
@@ -46,13 +45,8 @@ def get_db():
     finally:
         db.close()
 
-# ------------------------
-# Auth & Pages
-# ------------------------
 
-# ------------------------
 # Auth & Pages
-# ------------------------
 
 # Root -> redirect to login
 @app.get("/", response_class=HTMLResponse)
@@ -84,9 +78,7 @@ def login_for_access_token(
     access_token = create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
-# ------------------------
 # Student endpoints
-# ------------------------
 class StudentCreate(BaseModel):
     name: str
     rfid_tag: str
@@ -104,9 +96,7 @@ def get_students(db: Session = Depends(get_db), current_user: str = Depends(get_
     students = db.query(Student).all()
     return {"students": [{"id": s.id, "name": s.name, "rfid_tag": s.rfid_tag} for s in students]}
 
-# ------------------------
 # Attendance endpoints
-# ------------------------
 class AttendanceCreate(BaseModel):
     rfid_tag: str
     class_id: str
@@ -132,9 +122,7 @@ def create_attendance(scan: AttendanceCreate, db: Session = Depends(get_db), cur
         "timestamp": attendance_record.timestamp
     }
 
-# ------------------------
 # Headcount endpoints
-# ------------------------
 class HeadcountCreate(BaseModel):
     class_id: str
     count: int
@@ -156,9 +144,7 @@ def create_headcount(data: HeadcountCreate, db: Session = Depends(get_db), curre
         "timestamp": headcount_record.timestamp
     }
 
-# ------------------------
 # Verification endpoints
-# ------------------------
 @app.get("/verify/{class_id}")
 def verify_attendance(class_id: str, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     rfid_count = db.query(Attendance).filter(Attendance.class_id == class_id).count()
@@ -189,7 +175,7 @@ def get_headcounts(class_id: str, db: Session = Depends(get_db), current_user: s
         for r in records
     ]
 
-# In main.py
+
 
 # GET all attendance
 @app.get("/attendance")
@@ -232,7 +218,7 @@ def student_attendance(student_id: int, db: Session = Depends(get_db), current_u
         else:
             class_count[r.class_id] = 1
     
-    return class_count  # Example: {"BEC405A": 5, "BEC406B": 3}
+    return class_count  
 
 @app.get("/student/{student_id}/attendance-summary")
 def student_attendance_summary(student_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
