@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      color: #fff;
+      position: relative;
+      min-height: 100vh;
+      background-color: #000;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                  url("/static/college.jpg");
+      background-size: cover;
+      background-position: center;
+      filter: blur(8px);
+      z-index: -1;
+    }
+
+    h1, h2 {
+      text-shadow: 2px 2px 5px rgba(0,0,0,0.7);
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+      background-color: rgba(0, 0, 0, 0.6);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+      color: #fff;
+    }
+
+    th {
+      background-color: rgba(52, 152, 219, 0.9);
+    }
+
+    tr:nth-child(even) {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    button {
+      margin-right: 10px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: none;
+      background-color: #3498db;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background-color: #2980b9;
+      transform: scale(1.05);
+    }
+
+    #output, h1, h2, button, #attendanceChart {
+      position: relative;
+      z-index: 1;
+    }
+
+    #attendanceChart {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Welcome to Dashboard</h1>
+
+  <div>
+    <button onclick="fetchStudents()">Load Students</button>
+    <button onclick="fetchAttendance()">Load Attendance</button>
+    <button onclick="fetchHeadcount()">Load Headcount</button>
+  </div>
+
+  <div id="output"></div>
+
+  <!-- Canvas for student attendance chart -->
+  <canvas id="attendanceChart" width="300" height="200"></canvas>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const token = localStorage.getItem("token") || localStorage.getItem("access_token");
+    if (!token) {
+      window.location.href = "/login";
+    }
+
+    async function apiFetch(url, options = {}) {
+      options.headers = {
+        ...(options.headers || {}),
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      };
+
+      const response = await fetch(url, options);
+
+      if (response.status === 401) {
+        alert("Session expired. Please login again.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("access_token");
+        window.location.href = "/login";
+      }
+
+      return response.json();
+    }
+
+    async function fetchStudents() {
+      const data = await apiFetch("/students");
+      if (!data.students) return;
+
+      let html = "<h2>Students</h2>";
+      html += "<table>";
+      html += "<tr><th>ID</th><th>Name</th><th>RFID Tag</th><th>Actions</th></tr>";
+      data.students.forEach(s => {
+        html += `<tr>
+                  <td>${s.id}</td>
+                  <td>${s.name}</td>
+                  <td>${s.rfid_tag}</td>
+                  <td>
+                    <button onclick="showStudentAttendance(${s.id})">View Attendance</button>
+                  </td>
+                </tr>`;
+      });
+      html += "</table>";
+      document.getElementById("output").innerHTML = html;
+    }
+
+    async function fetchAttendance() {
+      const data = await apiFetch("/attendance");
+      if (!data) return;
+
+      let html = "<h2>Attendance Records</h2>";
+      html += "<table>";
+      html += "<tr><th>ID</th><th>Student ID</th><th>Class ID</th><th>Timestamp</th></tr>";
+      data.forEach(a => {
+        html += `<tr>
+                  <td>${a.id}</td>
+                  <td>${a.student_id}</td>
+                  <td>${a.class_id}</td>
+                  <td>${new Date(a.timestamp).toLocaleString()}</td>
+                </tr>`;
+      });
+      html += "</table>";
+      document.getElementById("output").innerHTML = html;
+    }
+
+    async function fetchHeadcount() {
+      const data = await apiFetch("/headcounts/BEC405A");
+      if (!data) return;
+
+      let html = "<h2>Headcount Records</h2>";
+      html += "<table>";
+      html += "<tr><th>ID</th><th>Class ID</th><th>Count</th><th>Timestamp</th></tr>";
+      data.forEach(h => {
+        html += `<tr>
+                  <td>${h.id}</td>
+                  <td>${h.class_id}</td>
+                  <td>${h.count}</td>
+                  <td>${new Date(h.timestamp).toLocaleString()}</td>
+                </tr>`;
+      });
+      html += "</table>";
+      document.getElementById("output").innerHTML = html;
+    }
+
+    async function showStudentAttendance(studentId) {
+      const data = await apiFetch(`/student/${studentId}/attendance-summary`);
+      if (!data.classes || data.classes.length === 0) {
+        alert("No attendance records for this student");
+        return;
+      }
+
+      const labels = data.classes.map(c => c.class_id);
+      const percentages = data.classes.map(c => c.attendance_percentage);
+
+      const ctx = document.getElementById('attendanceChart').getContext('2d');
+
+      // Destroy previous chart if exists
+      if (window.attChart) window.attChart.destroy();
+
+      window.attChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Attendance %',
+            data: percentages,
+            backgroundColor: [
+              '#3498db',
+              '#e74c3c',
+              '#f1c40f',
+              '#2ecc71',
+              '#9b59b6'
+            ],
+          }]
+        },
+        options: {
+          responsive: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#fff' }
+            }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
