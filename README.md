@@ -31,3 +31,35 @@ This project uses a **Raspberry Pi** with a **Pi Camera** and **ESP32** for RFID
 ```bash
 git clone https://github.com/sharathm0705/smart_attendance.git
 cd smart_attendance
+```
+2. Create and activate a Python virtual environment:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+4. Run the FastAPI backend:
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+5. On Raspberry Pi, run the image capture & upload script:
+```bash
+python3 capture_and_send.py
+```
+---
+## Usage 
+
+- Visit http://<backend-ip>:8000/dashboard to view attendance and headcount.
+- Raspberry Pi continuously captures images and sends headcount data to the backend.
+- ESP32 RFID scans are verified against the processed headcount.
+---
+## Hackathon 
+
+- Winner of **TECHNOVATE 2025** at **Alva's Institute of Engineering and Technology**.
+- Project demonstrates real-time IoT + AI integration for classroom automation.
+
+
+
