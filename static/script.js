@@ -39,10 +39,10 @@ async function updateDashboard() {
     const result = document.getElementById("verification-result");
 
     if(verifyData.status === "green") {
-        result.textContent = `✅ Class Verified! RFID: ${verifyData.rfid_count}, Headcount: ${verifyData.headcount}`;
+        result.textContent = ` Class Verified! RFID: ${verifyData.rfid_count}, Headcount: ${verifyData.headcount}`;
         result.style.color = "green";
     } else if(verifyData.status === "red") {
-        result.textContent = `❌ Mismatch! RFID: ${verifyData.rfid_count}, Headcount: ${verifyData.headcount}`;
+        result.textContent = ` Mismatch! RFID: ${verifyData.rfid_count}, Headcount: ${verifyData.headcount}`;
         result.style.color = "red";
     } else {
         result.textContent = verifyData.status;
